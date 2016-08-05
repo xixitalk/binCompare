@@ -3,8 +3,10 @@
 #include <assert.h>
 
 #define ONCE_SIZE  48
+#define FILE1_START  0
 #define FILE1_END  1
 #define FILE2_END  2
+#define FILE_END   3
 #define TYPE_32    4
 #define TYPE_16    2
 #define TYPE_8     1
@@ -75,7 +77,7 @@ static void print_char(const char *buf, int type)
 	}
 }
 
-static void printf_data(int addr, const char *buf1, const char *buf2)
+static void print_data(int addr, const char *buf1, const char *buf2)
 {
 	int i = 0;
 	unsigned int *pitem = NULL;
@@ -89,7 +91,6 @@ static void printf_data(int addr, const char *buf1, const char *buf2)
 		print_hex(buf2 + i, print_len);
 		printf("\n");
 
-		//exit(0);
 		printf("            ");
 		print_char(buf1 + i, print_len);
 		printf("        ");
@@ -140,21 +141,23 @@ static void file_compare(const char *file1, const char *file2)
 
 	while(!loopflag)
 	{
-		memset(buf1, '*', 128);
-		memset(buf2, '*', 128);
+		memset(buf1, 0, 128);
+		memset(buf2, 0, 128);
 		len1 = fread(buf1, 1, ONCE_SIZE, fd1);
-
-		if(len1 <= 0)
-			loopflag = FILE1_END;
-
 		len2 = fread(buf2, 1, ONCE_SIZE, fd2);
 
-		if(len2 <= 0)
+		if(len1 < ONCE_SIZE || len2 < ONCE_SIZE)
+			loopflag = FILE_END;
+
+		if(len2 > len1)
+			loopflag = FILE1_END;
+
+		if(len2 < len1)
 			loopflag = FILE2_END;
 
 		if(memcmp(buf1, buf2, ONCE_SIZE))
 		{
-			printf_data(addr, buf1, buf2);
+			print_data(addr, buf1, buf2);
 		}
 		else
 		{
@@ -169,6 +172,10 @@ static void file_compare(const char *file1, const char *file2)
 
 			case FILE2_END:
 				printf("file %s is larger than %s\n", file1, file2);
+				break;
+
+			case FILE_END:
+				printf("file %s same size with %s\n", file1, file2);
 				break;
 		}
 
